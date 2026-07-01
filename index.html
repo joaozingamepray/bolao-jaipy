@@ -826,6 +826,7 @@ async function renderInicio(){
   }
 
   if(SESSION.isAdmin){
+    html += adminCreateGameForm();
     html += adminGameEditor();
   }
 
@@ -872,6 +873,71 @@ function heroCard(g){
     </div>
     ${extra}
   </div>`;
+}
+
+/* ---------- ADMIN: criar novo jogo ---------- */
+function adminCreateGameForm(){
+  return `
+  <div class="admin-panel">
+    <h4>➕ Criar novo jogo</h4>
+    <div class="small-muted" style="margin-bottom:10px;">Preencha os dados abaixo e o jogo aparece na hora para todo mundo palpitar, na tela inicial e no ranking.</div>
+
+    <div class="field"><label>Fase</label><input type="text" id="new-fase" placeholder="ex: Quartas de Final"></div>
+
+    <div style="display:flex; gap:10px;">
+      <div class="field" style="flex:1;"><label>Time da casa</label><input type="text" id="new-mandante" placeholder="ex: Brasil"></div>
+      <div class="field" style="width:76px;"><label>Bandeira</label><input type="text" id="new-flagm" placeholder="🇧🇷"></div>
+    </div>
+
+    <div style="display:flex; gap:10px;">
+      <div class="field" style="flex:1;"><label>Time visitante</label><input type="text" id="new-visitante" placeholder="ex: Argentina"></div>
+      <div class="field" style="width:76px;"><label>Bandeira</label><input type="text" id="new-flagv" placeholder="🇦🇷"></div>
+    </div>
+
+    <div class="field"><label>Local</label><input type="text" id="new-local" placeholder="ex: Nova York/Nova Jersey"></div>
+
+    <div style="display:flex; gap:10px;">
+      <div class="field" style="flex:1;"><label>Data exibida no site</label><input type="text" id="new-datalabel" placeholder="ex: 05/07/2026"></div>
+      <div class="field" style="flex:1;"><label>Data e hora do jogo</label><input type="datetime-local" id="new-kickoff"></div>
+    </div>
+
+    <button class="btn btn-primary" onclick="createGame()">➕ Criar jogo</button>
+  </div>`;
+}
+
+async function createGame(){
+  const fase = document.getElementById('new-fase').value.trim();
+  const mandante = document.getElementById('new-mandante').value.trim();
+  const flagM = document.getElementById('new-flagm').value.trim() || '🏳️';
+  const visitante = document.getElementById('new-visitante').value.trim();
+  const flagV = document.getElementById('new-flagv').value.trim() || '🏳️';
+  const local = document.getElementById('new-local').value.trim();
+  const dataLabel = document.getElementById('new-datalabel').value.trim();
+  const kickoffRaw = document.getElementById('new-kickoff').value;
+
+  if(!fase || !mandante || !visitante || !local || !dataLabel || !kickoffRaw){
+    alert('Preencha todos os campos antes de criar o jogo.');
+    return;
+  }
+
+  // horário digitado é tratado como horário de Brasília
+  const kickoff = kickoffRaw + ':00-03:00';
+
+  const newGame = {
+    id: 'g_' + Date.now(),
+    fase, mandante, visitante, flagM, flagV,
+    gm: null, gv: null,
+    local, dataLabel, kickoff
+  };
+
+  try{
+    await sb('games', {method:'POST', body:[gameToDbInsert(newGame)]});
+    await loadGamesFromDb();
+    await renderTab();
+  }catch(e){
+    console.error(e);
+    alert("Não consegui criar o jogo. Verifique sua conexão e tente novamente.");
+  }
 }
 
 /* ---------- ADMIN: editor de jogos ---------- */
